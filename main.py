@@ -6,7 +6,7 @@ import time
 import schedule
 import uvicorn
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, Header, HTTPException
 
 from src.pipeline import run_pipeline
 
@@ -49,8 +49,36 @@ def health():
 
 @app.post("/run")
 def run_now():
+    """Dispara o pipeline (local: em background; na Vercel: aguarde o timeout da função)."""
+    if os.getenv("VERCEL"):
+        try:
+            count = run_pipeline()
+            return {"status": "ok", "lots": count}
+        except Exception as exc:
+            raise HTTPException(500, str(exc)) from exc
     threading.Thread(target=_scheduled_job, daemon=True).start()
     return {"message": "Execução iniciada em background"}
+
+
+@app.get("/cron")
+def vercel_cron(authorization: str | None = Header(default=None)):
+    """
+    Endpoint chamado pelo Cron Job da Vercel (ver vercel.json).
+    Requer CRON_SECRET nas variáveis de ambiente do projeto.
+    """
+    secret = os.getenv("CRON_SECRET")
+    if secret:
+        expected = f"Bearer {secret}"
+        if authorization != expected:
+            raise HTTPException(401, "Unauthorized")
+    try:
+        count = run_pipeline()
+        _last_run.update({"status": "ok", "lots": count, "error": None})
+        return {"status": "ok", "lots": count}
+    except Exception as exc:
+        logger.exception("Falha no cron")
+        _last_run.update({"status": "error", "lots": 0, "error": str(exc)})
+        raise HTTPException(500, str(exc)) from exc
 
 
 if __name__ == "__main__":

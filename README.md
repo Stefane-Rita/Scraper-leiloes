@@ -69,19 +69,18 @@ python main.py                         # serviço contínuo
 
 Acesse `http://localhost:8000/` para health check. `POST /run` dispara uma atualização manual.
 
-## GitHub e deploy (sem expor o JSON)
+## GitHub e deploy na Vercel (sem expor o JSON)
 
-Guia completo: **[docs/GITHUB_E_RAILWAY.md](docs/GITHUB_E_RAILWAY.md)** — init, commit seguro, push e Railway.
+Guia completo: **[docs/GITHUB_E_VERCEL.md](docs/GITHUB_E_VERCEL.md)** (detalhes em `x:\Cursor\docs\GITHUB_E_RAILWAY.md`).
 
-## Deploy no Railway
+1. Push para o GitHub (sem `.env` nem `credentials/`).
+2. Importe o repo na [Vercel](https://vercel.com) → configure variáveis `GOOGLE_*` e `CRON_SECRET`.
+3. Cron Job (`vercel.json`) chama `/api/cron` a cada 5 minutos.
+4. Health: `https://seu-projeto.vercel.app/api/`
 
-1. Envie o projeto para o GitHub (sem `.env` nem `credentials/`).
-2. Crie um projeto no [Railway](https://railway.app) conectado ao repositório.
-3. Configure as variáveis de ambiente (mesmas do `.env`).
-4. O `railway.toml` instala Chromium e inicia `main.py`.
-5. Use a URL pública `/` como health check.
+> Playwright na Vercel tem limite de tempo por execução. No plano Hobby (~10 s), reduza `COPART_MAX_PAGES` e `SODRE_MAX_PAGES`. No Pro, `vercel.json` permite até 300 s.
 
-> **Vercel** não é ideal para este projeto (Playwright + processo contínuo). Prefira **Railway**, Render ou um VPS.
+Para rodar 24h localmente sem limite serverless: `python main.py` (Railway/`railway.toml` também serve se preferir).
 
 ## O que foi mais complicado / aprendizados
 

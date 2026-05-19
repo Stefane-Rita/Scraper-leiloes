@@ -1,6 +1,7 @@
 .env
 *.json
 !package.json
+!vercel.json
 scripts/sodre_sample.json
 scripts/copart_sample.json
 __pycache__/
