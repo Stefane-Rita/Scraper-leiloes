@@ -1,0 +1,13 @@
+.env
+*.json
+!package.json
+scripts/sodre_sample.json
+scripts/copart_sample.json
+__pycache__/
+*.pyc
+.venv/
+venv/
+credentials/
+service-account.json
+.pytest_cache/
+
