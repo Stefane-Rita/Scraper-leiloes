@@ -2,3 +2,4 @@
 startCommand = "python -m playwright install chromium && python main.py"
 healthcheckPath = "/"
 restartPolicyType = "ON_FAILURE"
+cronSchedule = "0 * * * *" 
