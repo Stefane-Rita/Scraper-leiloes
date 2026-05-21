@@ -1,5 +1,5 @@
 """Filtros para manter apenas veículos em leilões ativos."""
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 # Sodré: IDs de status encerrado / cancelado / arrematado
@@ -28,11 +28,12 @@ def _not_ended(end_date: str) -> bool:
     parsed = _parse_dt(end_date)
     if parsed is None:
         return True
-    return parsed >= datetime.now()
+    return parsed >= datetime.now(timezone.utc).astimezone().replace(tzinfo=None)
 
 
 def is_active_sodre_lot(item: dict[str, Any]) -> bool:
-    if str(item.get("segment_id")) != "1" and item.get("segment_slug") != "veiculos":
+    # Apenas leilões de veículos (segment_id=1)
+    if str(item.get("segment_id")) != "1" or item.get("segment_slug") != "veiculos":
         return False
 
     auction_status = (item.get("auction_status") or "").lower()

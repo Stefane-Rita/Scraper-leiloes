@@ -17,28 +17,35 @@ async def collect_lots() -> list[AuctionLot]:
     sodre_count = 0
 
     async with browser_session(headless=True) as (browser, context):
+        # Criar páginas para ambos os scrapers
         copart_page = await context.new_page()
-        logger.info("Coletando Copart...")
+        sodre_page = await context.new_page()
+
         try:
-            copart_lots = await copart.scrape(copart_page)
-            copart_count = len(copart_lots)
-            lots.extend(copart_lots)
-            logger.info("Copart: %s lotes coletados", copart_count)
-        except Exception as exc:
-            logger.error("Copart: coleta falhou após todas as tentativas: %s", exc)
+            # Coletar em paralelo
+            copart_lots, sodre_lots = await asyncio.gather(
+                _collect_copart(copart, copart_page),
+                _collect_sodre(sodre, sodre_page),
+                return_exceptions=True,
+            )
+
+            # Processar resultados
+            if isinstance(copart_lots, Exception):
+                logger.error("Copart: coleta falhou: %s", copart_lots)
+            else:
+                copart_count = len(copart_lots)
+                lots.extend(copart_lots)
+                logger.info("Copart: %s lotes coletados", copart_count)
+
+            if isinstance(sodre_lots, Exception):
+                logger.error("Sodré: coleta falhou: %s", sodre_lots)
+            else:
+                sodre_count = len(sodre_lots)
+                lots.extend(sodre_lots)
+                logger.info("Sodré: %s lotes coletados", sodre_count)
+
         finally:
             await copart_page.close()
-
-        sodre_page = await context.new_page()
-        logger.info("Coletando Sodré Santoro...")
-        try:
-            sodre_lots = await sodre.scrape(sodre_page)
-            sodre_count = len(sodre_lots)
-            lots.extend(sodre_lots)
-            logger.info("Sodré: %s lotes coletados", sodre_count)
-        except Exception as exc:
-            logger.error("Sodré: coleta falhou após todas as tentativas: %s", exc)
-        finally:
             await sodre_page.close()
 
     logger.info(
@@ -49,6 +56,18 @@ async def collect_lots() -> list[AuctionLot]:
     )
     lots.sort(key=lambda x: (x.fonte, x.data_leilao, x.modelo_veiculo))
     return lots
+
+
+async def _collect_copart(scraper: "CopartScraper", page) -> list[AuctionLot]:
+    """Coletar lotes Copart."""
+    logger.info("Coletando Copart...")
+    return await scraper.scrape(page)
+
+
+async def _collect_sodre(scraper: "SodreScraper", page) -> list[AuctionLot]:
+    """Coletar lotes Sodré."""
+    logger.info("Coletando Sodré Santoro...")
+    return await scraper.scrape(page)
 
 
 def run_pipeline() -> int:

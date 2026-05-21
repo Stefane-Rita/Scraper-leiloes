@@ -88,7 +88,7 @@ ACTIVE_LOTS_QUERY: dict[str, Any] = {
 class SodreScraper:
     def __init__(self, page_size: int | None = None, max_pages: int | None = None):
         self.page_size = page_size or int(os.getenv("SODRE_PAGE_SIZE", "100"))
-        self.max_pages = max_pages or int(os.getenv("SODRE_MAX_PAGES", "30"))
+        self.max_pages = max_pages or int(os.getenv("SODRE_MAX_PAGES", "10"))
 
     @_async_retry(max_attempts=3, delay=3.0)
     async def scrape(self, page: Page) -> list[AuctionLot]:
@@ -124,7 +124,6 @@ class SodreScraper:
                         return await response.json();
                     }""",
                     body,
-                    timeout=30_000,
                 )
             except Exception as exc:
                 logger.warning(
@@ -157,11 +156,24 @@ class SodreScraper:
             for item in results:
                 if not is_active_sodre_lot(item):
                     skipped += 1
+                    logger.debug(
+                        "Sodré: lote %s filtrado — "
+                        "segment_id=%s, segment_slug=%s, auction_status=%s, "
+                        "lot_status=%s, lot_status_id=%s, lot_test=%s",
+                        item.get("id"),
+                        item.get("segment_id"),
+                        item.get("segment_slug"),
+                        item.get("auction_status"),
+                        item.get("lot_status"),
+                        item.get("lot_status_id"),
+                        item.get("lot_test"),
+                    )
                     continue
                 lot = self._parse_lot(item)
                 if lot and lot.id_externo not in seen:
                     seen.add(lot.id_externo)
                     lots.append(lot)
+                    logger.debug("Sodré: lote %s adicionado", lot.id_externo)
 
             logger.info(
                 "Sodré página %s: %s brutos, %s ativos acumulados (ignorados: %s)",

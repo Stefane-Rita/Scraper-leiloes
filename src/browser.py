@@ -11,10 +11,10 @@ USER_AGENT = (
 )
 
 # Timeouts (ms) — generous to handle slow networks and heavy pages
-COPART_GOTO_TIMEOUT = 180_000   # 3 minutes
-SODRE_GOTO_TIMEOUT = 120_000    # 2 minutes
-COPART_WAIT_TIMEOUT = 6_000
-SODRE_WAIT_TIMEOUT = 3_000
+COPART_GOTO_TIMEOUT = 90_000    # 1.5 minutes (reduzido de 3)
+SODRE_GOTO_TIMEOUT = 60_000     # 1 minute (reduzido de 2)
+COPART_WAIT_TIMEOUT = 4_000     # reduzido de 6
+SODRE_WAIT_TIMEOUT = 2_000      # reduzido de 3
 
 
 @asynccontextmanager

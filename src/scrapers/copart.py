@@ -54,7 +54,7 @@ class CopartScraper:
     """Coleta lotes via API DataTables (POST form-urlencoded) disparada pela página de busca."""
 
     def __init__(self, max_pages: int | None = None):
-        self.max_pages = max_pages or int(os.getenv("COPART_MAX_PAGES", "50"))
+        self.max_pages = max_pages or int(os.getenv("COPART_MAX_PAGES", "20"))
 
     @_async_retry(max_attempts=3, delay=3.0)
     async def scrape(self, page: Page) -> list[AuctionLot]:
