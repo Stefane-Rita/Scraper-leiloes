@@ -228,14 +228,6 @@ class SodreScraper:
                     "Sodré: lote %s — avaliação não encontrada; usando bid_initial: R$ %.2f",
                     lot_id, avaliado
                 )
-        
-        # 2. Se ainda não tem avaliação, tenta estimar como 1.2x o lance atual (12% acima)
-        if avaliado is None and lance and lance > 0:
-            avaliado = lance * 1.2
-            logger.debug(
-                "Sodré: lote %s — avaliação não encontrada; usando estimativa (lance * 1.2): R$ %.2f",
-                lot_id, avaliado
-            )
 
         diff_rs, diff_pct = calc_diff(lance, avaliado)
 
