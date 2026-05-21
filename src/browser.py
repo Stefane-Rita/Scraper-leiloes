@@ -1,7 +1,7 @@
 import logging
 from contextlib import asynccontextmanager
 
-from playwright.async_api import Browser, BrowserContext, Page, async_playwright
+from playwright.async_api import Browser, BrowserContext, async_playwright
 
 logger = logging.getLogger(__name__)
 
@@ -33,9 +33,8 @@ async def browser_session(headless: bool = True):
             locale="pt-BR",
             user_agent=USER_AGENT,
         )
-        page: Page = await context.new_page()
         try:
-            yield browser, context, page
+            yield browser, context
         except Exception:
             logger.exception("Erro inesperado durante a sessão do browser")
             raise
