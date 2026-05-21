@@ -5,6 +5,7 @@ import time
 from datetime import datetime, timezone
 from functools import wraps
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import gspread
 from google.oauth2.service_account import Credentials
@@ -152,7 +153,8 @@ class SheetsClient:
             logger.warning(
                 "Sheets.sync chamado com lista vazia — planilha será limpa mas sem lotes"
             )
-        now = datetime.now(timezone.utc).astimezone().strftime("%d/%m/%Y %H:%M:%S")
+        br_tz = ZoneInfo("America/Sao_Paulo")
+        now = datetime.now(br_tz).strftime("%d/%m/%Y %H:%M:%S")
         meta_row = [f"Última atualização: {now} | Total de lotes ativos: {len(lots)}"]
         rows = [meta_row, HEADERS] + [lot.to_row() for lot in lots]
 

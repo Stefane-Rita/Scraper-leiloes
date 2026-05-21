@@ -1,6 +1,7 @@
 """Filtros para manter apenas veículos em leilões ativos."""
 from datetime import datetime, timezone
 from typing import Any, Optional
+from zoneinfo import ZoneInfo
 
 # Sodré: IDs de status encerrado / cancelado / arrematado
 SODRE_INACTIVE_LOT_STATUS_IDS = {5, 6, 7}
@@ -28,7 +29,9 @@ def _not_ended(end_date: str) -> bool:
     parsed = _parse_dt(end_date)
     if parsed is None:
         return True
-    return parsed >= datetime.now(timezone.utc).astimezone().replace(tzinfo=None)
+    br_tz = ZoneInfo("America/Sao_Paulo")
+    now = datetime.now(br_tz).replace(tzinfo=None)
+    return parsed >= now
 
 
 def is_active_sodre_lot(item: dict[str, Any]) -> bool:

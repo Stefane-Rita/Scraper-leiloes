@@ -217,10 +217,25 @@ class SodreScraper:
 
         lance = parse_brl(item.get("bid_actual"))
         avaliado = extract_appraisal_from_text(item.get("lot_description", ""))
+        
+        # Fallbacks para preço de avaliação
         if avaliado is None:
+            # 1. Tenta bid_initial se não há lances
             inicial = parse_brl(item.get("bid_initial"))
             if inicial and inicial > 0 and item.get("bid_has_bid") is False:
                 avaliado = inicial
+                logger.debug(
+                    "Sodré: lote %s — avaliação não encontrada; usando bid_initial: R$ %.2f",
+                    lot_id, avaliado
+                )
+        
+        # 2. Se ainda não tem avaliação, tenta estimar como 1.2x o lance atual (12% acima)
+        if avaliado is None and lance and lance > 0:
+            avaliado = lance * 1.2
+            logger.debug(
+                "Sodré: lote %s — avaliação não encontrada; usando estimativa (lance * 1.2): R$ %.2f",
+                lot_id, avaliado
+            )
 
         diff_rs, diff_pct = calc_diff(lance, avaliado)
 
