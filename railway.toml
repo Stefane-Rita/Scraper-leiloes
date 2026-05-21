@@ -1,5 +1,4 @@
 [deploy]
-startCommand = "python -m playwright install chromium && python main.py"
-healthcheckPath = "/"
+startCommand = "python scripts/run_cron.py"
 restartPolicyType = "ON_FAILURE"
-cronSchedule = "0 * * * *" 
+cronSchedule = "0 * * * *"
