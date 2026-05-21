@@ -24,12 +24,15 @@ _last_run: dict = {"status": "idle", "lots": 0, "error": None}
 
 def _scheduled_job():
     global _last_run
+    logger.info("Iniciando execução do pipeline...")
     try:
         count = run_pipeline()
         _last_run = {"status": "ok", "lots": count, "error": None}
+        logger.info("Pipeline concluído com sucesso: %s lotes sincronizados", count)
     except Exception as exc:
-        logger.exception("Falha no pipeline")
-        _last_run = {"status": "error", "lots": 0, "error": str(exc)}
+        error_msg = f"{type(exc).__name__}: {exc}"
+        logger.exception("Pipeline falhou — %s", error_msg)
+        _last_run = {"status": "error", "lots": 0, "error": error_msg}
 
 
 def _scheduler_loop():

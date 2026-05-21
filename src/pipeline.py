@@ -13,24 +13,60 @@ async def collect_lots() -> list[AuctionLot]:
     copart = CopartScraper()
     sodre = SodreScraper()
     lots: list[AuctionLot] = []
+    copart_count = 0
+    sodre_count = 0
 
     async with browser_session(headless=True) as (_, context, _):
         copart_page = await context.new_page()
         logger.info("Coletando Copart...")
-        lots.extend(await copart.scrape(copart_page))
-        await copart_page.close()
+        try:
+            copart_lots = await copart.scrape(copart_page)
+            copart_count = len(copart_lots)
+            lots.extend(copart_lots)
+            logger.info("Copart: %s lotes coletados", copart_count)
+        except Exception as exc:
+            logger.error("Copart: coleta falhou após todas as tentativas: %s", exc)
+        finally:
+            await copart_page.close()
 
         sodre_page = await context.new_page()
         logger.info("Coletando Sodré Santoro...")
-        lots.extend(await sodre.scrape(sodre_page))
-        await sodre_page.close()
+        try:
+            sodre_lots = await sodre.scrape(sodre_page)
+            sodre_count = len(sodre_lots)
+            lots.extend(sodre_lots)
+            logger.info("Sodré: %s lotes coletados", sodre_count)
+        except Exception as exc:
+            logger.error("Sodré: coleta falhou após todas as tentativas: %s", exc)
+        finally:
+            await sodre_page.close()
 
+    logger.info(
+        "Coleta concluída — Copart: %s, Sodré: %s, Total: %s lotes",
+        copart_count,
+        sodre_count,
+        len(lots),
+    )
     lots.sort(key=lambda x: (x.fonte, x.data_leilao, x.modelo_veiculo))
     return lots
 
 
 def run_pipeline() -> int:
     lots = asyncio.run(collect_lots())
-    logger.info("Total coletado: %s lotes", len(lots))
-    SheetsClient().sync(lots)
+
+    if not lots:
+        logger.warning(
+            "Nenhum lote foi coletado de nenhuma fonte — "
+            "a sincronização com a planilha será ignorada para evitar apagar dados existentes"
+        )
+        return 0
+
+    logger.info("Total coletado: %s lotes — iniciando sincronização com a planilha...", len(lots))
+    try:
+        SheetsClient().sync(lots)
+    except Exception as exc:
+        raise RuntimeError(
+            f"Falha ao sincronizar {len(lots)} lotes com a planilha: {exc}"
+        ) from exc
+
     return len(lots)

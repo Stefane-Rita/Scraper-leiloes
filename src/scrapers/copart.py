@@ -1,9 +1,12 @@
+import asyncio
 import logging
 import os
+from functools import wraps
 from typing import Any
 
 from playwright.async_api import Page
 
+from src.browser import COPART_GOTO_TIMEOUT, COPART_WAIT_TIMEOUT
 from src.filters import is_active_copart_lot
 from src.models import AuctionLot
 from src.transform import calc_diff, format_datetime_br, is_opportunity, parse_brl
@@ -16,12 +19,44 @@ COPART_SEARCH_URL = (
 )
 
 
+def _async_retry(max_attempts: int = 3, delay: float = 2.0):
+    """Decorator de retry assíncrono para métodos de scraper."""
+    def decorator(func):
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            for attempt in range(1, max_attempts + 1):
+                try:
+                    return await func(*args, **kwargs)
+                except Exception as exc:
+                    if attempt == max_attempts:
+                        logger.error(
+                            "Copart: todas as %s tentativas falharam em '%s': %s",
+                            max_attempts,
+                            func.__name__,
+                            exc,
+                        )
+                        raise
+                    logger.warning(
+                        "Copart: tentativa %s/%s falhou em '%s': %s. "
+                        "Aguardando %.1fs antes de tentar novamente...",
+                        attempt,
+                        max_attempts,
+                        func.__name__,
+                        exc,
+                        delay,
+                    )
+                    await asyncio.sleep(delay)
+        return wrapper
+    return decorator
+
+
 class CopartScraper:
     """Coleta lotes via API DataTables (POST form-urlencoded) disparada pela página de busca."""
 
     def __init__(self, max_pages: int | None = None):
         self.max_pages = max_pages or int(os.getenv("COPART_MAX_PAGES", "50"))
 
+    @_async_retry(max_attempts=3, delay=3.0)
     async def scrape(self, page: Page) -> list[AuctionLot]:
         batches: list[list[dict[str, Any]]] = []
 
@@ -37,25 +72,46 @@ class CopartScraper:
                 )
                 if content:
                     batches.append(content)
-            except Exception:
-                pass
+                    logger.debug(
+                        "Copart: capturou batch com %s itens (total batches: %s)",
+                        len(content),
+                        len(batches),
+                    )
+            except Exception as exc:
+                logger.warning("Copart: falha ao parsear resposta da API: %s", exc)
 
         page.on("response", on_response)
-        await page.goto(COPART_SEARCH_URL, wait_until="load", timeout=120_000)
-        await page.wait_for_timeout(6_000)
+
+        logger.info(
+            "Copart: carregando página de busca (timeout=%ss)...",
+            COPART_GOTO_TIMEOUT // 1000,
+        )
+        await page.goto(COPART_SEARCH_URL, wait_until="load", timeout=COPART_GOTO_TIMEOUT)
+        await page.wait_for_timeout(COPART_WAIT_TIMEOUT)
 
         for page_num in range(1, self.max_pages):
             next_btn = page.locator("#serverSideDataTable_next:not(.disabled)")
             if await next_btn.count() == 0:
+                logger.info("Copart: sem mais páginas após página %s", page_num)
                 break
             try:
                 await next_btn.scroll_into_view_if_needed(timeout=5_000)
                 await next_btn.click(timeout=10_000)
-                await page.wait_for_timeout(3_500)
+                await page.wait_for_timeout(5_000)
                 logger.info("Copart: navegou para página %s", page_num + 1)
             except Exception as exc:
-                logger.warning("Copart: paginação interrompida na página %s: %s", page_num, exc)
+                logger.warning(
+                    "Copart: paginação interrompida na página %s: %s",
+                    page_num,
+                    exc,
+                )
                 break
+
+        if not batches:
+            raise RuntimeError(
+                "Copart: nenhum batch de dados foi capturado — "
+                "a API pode não ter respondido ou a estrutura da página mudou"
+            )
 
         lots: list[AuctionLot] = []
         seen: set[str] = set()
