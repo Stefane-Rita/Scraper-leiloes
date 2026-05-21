@@ -21,7 +21,14 @@ SODRE_WAIT_TIMEOUT = 3_000
 async def browser_session(headless: bool = True):
     logger.debug("Iniciando sessão do browser (headless=%s)", headless)
     async with async_playwright() as playwright:
-        browser: Browser = await playwright.chromium.launch(headless=headless)
+        browser: Browser = await playwright.chromium.launch(
+            headless=headless,
+            args=[
+                "--no-sandbox",
+                "--disable-dev-shm-usage",
+                "--disable-gpu",
+            ],
+        )
         context: BrowserContext = await browser.new_context(
             locale="pt-BR",
             user_agent=USER_AGENT,

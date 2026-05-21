@@ -124,7 +124,7 @@ class SheetsClient:
         logger.info("Autenticando como conta de serviço: %s", self._service_email)
 
         try:
-            client = gspread.authorize(credentials)
+            client = client = gspread.service_account_from_dict(info)
             spreadsheet = client.open_by_key(spreadsheet_id)
         except Exception as exc:
             raise ValueError(

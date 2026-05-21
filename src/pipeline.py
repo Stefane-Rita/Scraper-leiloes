@@ -16,7 +16,7 @@ async def collect_lots() -> list[AuctionLot]:
     copart_count = 0
     sodre_count = 0
 
-    async with browser_session(headless=True) as (_, context, _):
+    async with browser_session(headless=True) as (playwright, browser, context):
         copart_page = await context.new_page()
         logger.info("Coletando Copart...")
         try:

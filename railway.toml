@@ -1,4 +1,3 @@
 [deploy]
-startCommand = "python scripts/run_cron.py"
+startCommand = "python main.py"
 restartPolicyType = "ON_FAILURE"
-cronSchedule = "0 * * * *"

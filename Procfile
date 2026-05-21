@@ -1,1 +1,2 @@
-web: python -m playwright install chromium && python main.py
+web: python main.py
+worker: python scripts/run_cron.py

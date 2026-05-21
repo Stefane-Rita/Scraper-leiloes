@@ -1,5 +1,9 @@
-import logging
 import sys
+import os
+# Garante que a raiz do projeto está no path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+import logging
 from dotenv import load_dotenv
 from src.pipeline import run_pipeline
 
