@@ -210,6 +210,18 @@ class SodreScraper:
         title = item.get("lot_title", "")
         year_m = item.get("lot_year_manufacture")
         year_mod = item.get("lot_year_model")
+        year = None
+        if year_m is not None:
+            try:
+                year = int(year_m)
+            except (ValueError, TypeError):
+                year = None
+        if year is None and year_mod is not None:
+            try:
+                year = int(year_mod)
+            except (ValueError, TypeError):
+                year = None
+
         year_part = f"{year_m}/{year_mod}" if year_m and year_mod else (str(year_m or year_mod or ""))
         modelo = title or f"{brand} {model}".strip()
         if year_part.strip("/"):
@@ -268,4 +280,7 @@ class SodreScraper:
             condicao_leilao=condicao_leilao,
             local_leilao=item.get("lot_location") or item.get("lot_location_address", ""),
             id_externo=str(lot_id),
+            lot_brand=brand or None,
+            lot_year=year,
+            lot_model=model,
         )

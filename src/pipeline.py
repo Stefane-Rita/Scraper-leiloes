@@ -5,6 +5,8 @@ from src.browser import browser_session
 from src.models import AuctionLot
 from src.scrapers import CopartScraper, SodreScraper
 from src.sheets import SheetsClient
+from src.fipe_enricher import FipeEnricher
+
 
 logger = logging.getLogger(__name__)
 
@@ -70,22 +72,39 @@ async def _collect_sodre(scraper: "SodreScraper", page) -> list[AuctionLot]:
     return await scraper.scrape(page)
 
 
-def run_pipeline() -> int:
-    lots = asyncio.run(collect_lots())
+async def run_pipeline_async() -> int:
+    lots = await collect_lots()
 
     if not lots:
-        logger.warning(
-            "Nenhum lote foi coletado de nenhuma fonte — "
-            "a sincronização com a planilha será ignorada para evitar apagar dados existentes"
-        )
+        logger.warning(...)
         return 0
 
-    logger.info("Total coletado: %s lotes — iniciando sincronização com a planilha...", len(lots))
+    sheets = SheetsClient()
+
+    # ← bloco novo
     try:
-        SheetsClient().sync(lots)
+        enriched = await FipeEnricher(sheets).enrich(lots)
+        logger.info("FIPE: %s lotes enriquecidos", enriched)
+    except Exception as exc:
+        logger.warning("Enriquecimento FIPE falhou, continuando sem: %s", exc)
+    # ← fim do bloco novo
+
+    logger.info("Total coletado: %s lotes — iniciando sincronização...", len(lots))
+    try:
+        await asyncio.to_thread(sheets.sync, lots)
     except Exception as exc:
         raise RuntimeError(
             f"Falha ao sincronizar {len(lots)} lotes com a planilha: {exc}"
         ) from exc
 
     return len(lots)
+
+
+def run_pipeline() -> int:
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(run_pipeline_async())
+    raise RuntimeError(
+        "run_pipeline() não pode ser chamado dentro de um loop já em execução; use run_pipeline_async() em código async"
+    )

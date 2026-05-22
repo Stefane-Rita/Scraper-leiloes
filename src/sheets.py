@@ -147,6 +147,10 @@ class SheetsClient:
     def service_account_email(self) -> str:
         return self._service_email
 
+    @property
+    def spreadsheet(self) -> gspread.Spreadsheet:
+        return self._sheet.spreadsheet
+
     @_sync_retry(max_attempts=3, delay=2.0)
     def sync(self, lots: list[AuctionLot]) -> None:
         if not lots:

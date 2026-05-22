@@ -17,6 +17,9 @@ class AuctionLot:
     condicao_leilao: str
     local_leilao: str
     id_externo: str
+    lot_brand: Optional[str] = None
+    lot_year: Optional[int] = None
+    lot_model: Optional[str] = None
 
     def to_row(self) -> list:
         return [
