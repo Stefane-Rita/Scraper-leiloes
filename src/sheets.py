@@ -162,6 +162,15 @@ class SheetsClient:
         meta_row = [f"Última atualização: {now} | Total de lotes ativos: {len(lots)}"]
         rows = [meta_row, HEADERS] + [lot.to_row() for lot in lots]
 
+        try:
+            spreadsheet = self._sheet.spreadsheet
+            logger.info(
+                "Sheets: atualizando planilha id=%s title=%s aba=%s",
+                getattr(spreadsheet, 'id', None), getattr(spreadsheet, 'title', None), getattr(self._sheet, 'title', None),
+            )
+        except Exception:
+            logger.debug("Sheets: não foi possível obter metadados da planilha para logging")
+
         logger.info(
             "Sincronizando %s lotes com a planilha (%s linhas no total)...",
             len(lots),
